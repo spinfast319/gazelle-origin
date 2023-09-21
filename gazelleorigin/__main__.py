@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from dataclasses import dataclass
 import argparse
 import io
 import os
@@ -6,6 +7,8 @@ import re
 import subprocess
 import sys
 from dotenv import dotenv_values
+from typing import Dict
+
 try:
     import bencoder
     has_bencoder = True
@@ -28,18 +31,34 @@ EXIT_CODES = {
     'input-error': 10
 }
 
+@dataclass
+class TrackerData:
+    base_url: str
+    api_key_env: str # name of the api key environmental variable
+    aliases: list[str]
+    api_key: str = None
+
+
+TRACKERS = [
+    TrackerData(base_url="https://redacted.ch",
+            api_key_env="RED_API_KEY",
+            aliases=["red", "flacsfor.me"]),
+    TrackerData(base_url="https://orpheus.network",
+            api_key_env="OPS_API_KEY",
+            aliases=["ops", "opsfet.ch"])
+]
+
 parser = argparse.ArgumentParser(
     description='Fetches torrent origin information from Gazelle-based music trackers',
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog='Either ORIGIN_TRACKER or --tracker must be set to a supported tracker:\n'
-           '  redacted.ch: "RED", or any string containing "flacsfor.me"'
+           '  redacted.ch: "RED", or any string containing "flacsfor.me"\n'
+           '  orpheus.network: "OPS", or any string containing "opsfet.ch"'
 )
 parser.add_argument('torrent', nargs='+', help='torrent identifier, which can be either its info hash, torrent ID, permalink, or path to torrent file(s) whose name or computed info hash should be used')
 parser.add_argument('--out', '-o', help='Path to write origin data (default: print to stdout).', metavar='file')
-parser.add_argument('--tracker', '-t', metavar='tracker',
-    help='Tracker to use. Optional if the ORIGIN_TRACKER environment variable is set.')
-parser.add_argument('--api-key', metavar='key',
-    help='API key. Optional if the <TRACKER>_API_KEY (e.g., RED_API_KEY) environment variable is set.')
+parser.add_argument('--ORIGIN_TRACKER', '--tracker', '-t', metavar='tracker', default=os.environ.get("ORIGIN_TRACKER"), help='Tracker to use. Optional if the ORIGIN_TRACKER environment variable is set.')
+parser.add_argument('--api-key', metavar='key', help='API key. Optional if the <TRACKER>_API_KEY (e.g., RED_API_KEY) environment variable is set.')
 parser.add_argument('--env', '-e', nargs=1, metavar='file', help='file to load environment variables from')
 parser.add_argument('--post', '-p', nargs='+', metavar='file', default=[], help='script(s) to run after each output is written.\n'
                     'These scripts have access to environment variables with info about the item including OUT, ARTIST, NAME, DIRECTORY, EDITION, YEAR, FORMAT, ENCODING')
@@ -55,15 +74,17 @@ parser.add_argument(
     help="Stop, ask, or continue when encountering an error (default: %(default)s)")
 parser.add_argument('--deduplicate', '-d', action='store_true', help='if specified, only one torrent with any given id/hash will be fetched')
 
+for tracker in TRACKERS:
+    parser.add_argument('--' + tracker.api_key_env, help=argparse.SUPPRESS, default=os.environ.get(tracker.api_key_env))
+parser = parser
 
-api = None
+api: GazelleAPI
 args = None
 fetched = {}
-environment = {}
 
 
 def ask_invalid():
-    """Prompt the user for the next action after encoutnering an error."""
+    """Prompt the user for the next action after encountering an error."""
     do_this = ""
     options_ask = ["c", "s"]
     while do_this not in options_ask:
@@ -89,7 +110,7 @@ def handle_invalid():
 
 
 def main(argv):
-    global api, args, environment
+    global api, args
 
     # First, check if "--env" is provided. If it is, set the default arguments to the values in the file, then parse arguments again.
     # This ensures that the command line options override the env file, which overrides environmental variables.
@@ -103,47 +124,38 @@ def main(argv):
         if not os.path.isfile(script):
             print('Invalid post script: ' + script)
             sys.exit(EXIT_CODES['input-error'])
-    environment = {'out': args.out if args.out else 'stdout'}
 
-    if args.api_key:
-        environment['api_key'] = args.api_key
-    elif os.environ.get('RED_API_KEY'):
-        environment['api_key'] = os.environ.get('RED_API_KEY')
-
-    if not environment['api_key']:
-        print('API key must be provided using either --api-key or setting the <TRACKER>_API_KEY environment variable.', file=sys.stderr)
-        sys.exit(EXIT_CODES['api-key'])
-
-
-    if args.tracker:
-        environment['tracker'] = args.tracker
-    elif os.environ.get('ORIGIN_TRACKER'):
-        environment['tracker'] = os.environ.get('ORIGIN_TRACKER')
-
-    if not environment['tracker']:
+    if not args.ORIGIN_TRACKER:
         print('Tracker must be provided using either --tracker or setting the ORIGIN_TRACKER environment variable.',
                 file=sys.stderr)
         sys.exit(EXIT_CODES['tracker'])
-    if environment['tracker'].lower() != 'red' and 'flacsfor.me' not in environment['tracker'].lower():
-        print('Invalid tracker: {0}'.format(environment['tracker']), file=sys.stderr)
+
+    # Search for the tracker with an alias matching the input
+    tracker = next((x for x in TRACKERS if args.ORIGIN_TRACKER.lower() in x.aliases), None)
+    if not tracker:
+        print('Invalid tracker: {0}'.format(args.ORIGIN_TRACKER), file=sys.stderr)
         sys.exit(EXIT_CODES['tracker'])
 
+    tracker.api_key = args.api_key or getattr(args, tracker.api_key_env)
+    if not tracker.api_key: # Avoid KeyError
+        print(f'API key must be provided using either --api-key or setting the {", ".join(x.api_key_env for x in TRACKERS)} environment variables.', file=sys.stderr)
+        sys.exit(EXIT_CODES['api-key'])
+
     try:
-        api = GazelleAPI(environment['api_key'])
+        api = GazelleAPI(tracker)
     except GazelleAPIError as e:
         print('Error initializing Gazelle API client')
         if handle_invalid() == "stop":
             sys.exit(EXIT_CODES[e.code])
 
-    for arg in args.torrent:
-        handle_input_torrent(arg, True, args.recursive)
+    for torrent in args.torrent:
+        handle_input_torrent(torrent, True, args.recursive)
 
-
-"""
-Parse hash or id of torrent
-torrent can be an id, hash, url, or path
-"""
-def parse_torrent_input(torrent, walk=True, recursive=False):
+def parse_torrent_input(torrent, walk=True, recursive=False) -> Dict:
+    """
+    Parse hash or id of torrent
+    torrent can be an id, hash, url, or path
+    """
     # torrent is literal infohash
     if re.match(r'^[\da-fA-F]{40}$', torrent):
         return {'hash': torrent}
@@ -237,7 +249,7 @@ def handle_input_torrent(torrent, walk=True, recursive=False):
     if args.post:
         fetched_info = yaml.load(info, Loader=yaml.SafeLoader)
         for script in args.post:
-            subprocess.run(script, shell=True, env={k.upper(): str(v) for k, v in {**environment, **fetched_info}.items()})
+            subprocess.run(script, shell=True, env={k.upper(): str(v) for k, v in {**args, **fetched_info}.items()})
 
 if __name__ == '__main__':
     main(sys.argv[1:])
