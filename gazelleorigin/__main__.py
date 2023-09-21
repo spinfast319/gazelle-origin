@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+from dotenv import dotenv_values
 try:
     import bencoder
     has_bencoder = True
@@ -87,34 +88,22 @@ def handle_invalid():
         return 'stop'
 
 
-def main():
+def main(argv):
     global api, args, environment
 
-    args = parser.parse_args()
+    # First, check if "--env" is provided. If it is, set the default arguments to the values in the file, then parse arguments again.
+    # This ensures that the command line options override the env file, which overrides environmental variables.
+    args = parser.parse_args(argv)
+    if args.env:
+        envs = dotenv_values(args.env[0], verbose=True)
+        parser.set_defaults(**envs)
+    args = parser.parse_args(argv)
+
     for script in args.post:
         if not os.path.isfile(script):
             print('Invalid post script: ' + script)
             sys.exit(EXIT_CODES['input-error'])
     environment = {'out': args.out if args.out else 'stdout'}
-
-    if args.env:
-        try:
-            with open(args.env[0], 'r') as envfile:
-                for line in envfile.readlines():
-                    var = line.rstrip().split('=', 1)
-                    if len(var) != 2:
-                        if len(var) != 0:
-                            print('Skipping invalid line in env file: ' + line)
-                        continue
-                    if var[0] == 'RED_API_KEY':
-                        environment['api_key'] = var[1]
-                    elif var[0] == 'ORIGIN_TRACKER':
-                        environment['tracker'] = var[1]
-                    else:
-                        environment[var[0]] = var[1]
-        except IOError:
-            print('Unable to open file ' + args.env[0])
-            sys.exit(EXIT_CODES['input-error'])
 
     if args.api_key:
         environment['api_key'] = args.api_key
@@ -251,4 +240,4 @@ def handle_input_torrent(torrent, walk=True, recursive=False):
             subprocess.run(script, shell=True, env={k.upper(): str(v) for k, v in {**environment, **fetched_info}.items()})
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
