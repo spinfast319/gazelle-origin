@@ -5,6 +5,12 @@ import os
 import re
 import subprocess
 import sys
+try:
+    import bencoder
+    has_bencoder = True
+except ModuleNotFoundError:
+    has_bencoder = False
+
 import yaml
 from hashlib import sha1
 from . import GazelleAPI, GazelleAPIError
@@ -167,24 +173,21 @@ def parse_torrent_input(torrent, walk=True, recursive=False):
             return {'hash': filename}
         # If torrent file compute the info hash
         if not args.no_hash and os.path.isfile(torrent) and os.path.split(torrent)[-1].endswith('.torrent'):
-            global encode, decode
-            if 'encode' not in globals() or 'decode' not in globals():
-                try:
-                    from bencoder import encode, decode
-                except:
-                    print('Found torrent file ' + torrent + ' but unable to load bencoder module to compute hash')
-                    print('Install bencoder (pip install bencoder) then try again or pass --no-hash to not compute the hash')
-                    if handle_invalid() != "stop":
+            if has_bencoder:
+                with open(torrent, 'rb') as torrent:
+                    try:
+                        decoded = bencoder.decode(torrent.read())
+                        info_hash = sha1(bencoder.encode(decoded[b'info'])).hexdigest()
+                    except:
                         return None
-                    else:
-                        sys.exit(EXIT_CODES['input-error'])
-            with open(torrent, 'rb') as torrent:
-                try:
-                    decoded = decode(torrent.read())
-                    info_hash = sha1(encode(decoded[b'info'])).hexdigest()
-                except:
+                    return {'hash': info_hash}
+            else:
+                print('Found torrent file ' + torrent + ' but unable to load bencoder module to compute hash')
+                print('Install bencoder (pip install bencoder) then try again or pass --no-hash to not compute the hash')
+                if handle_invalid() != "stop":
                     return None
-                return {'hash': info_hash}
+                else:
+                    sys.exit(EXIT_CODES['input-error'])
     # torrent is a URL
     url_match = re.match(r'.*torrentid=(\d+).*', torrent)
     if not url_match or url_match.lastindex < 1:

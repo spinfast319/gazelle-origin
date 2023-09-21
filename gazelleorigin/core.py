@@ -1,9 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import re
 import html
 import json
 import requests
 import textwrap
 import yaml
 
+if TYPE_CHECKING:
+    from gazelleorigin.__main__ import TrackerData
 
 headers = {
     'Connection': 'keep-alive',
@@ -27,17 +32,19 @@ class GazelleAPIError(Exception):
 
 # GazelleAPI code is based off of REDbetter (https://github.com/Mechazawa/REDBetter-crawler).
 class GazelleAPI:
-    def __init__(self, api_key):
+    def __init__(self, tracker: TrackerData = None):
+        self.base = tracker.base_url
         self.session = requests.Session()
         self.session.headers.update(headers)
-        self.session.headers.update({'Authorization': api_key})
+        self.session.headers.update({'Authorization': tracker.api_key})
 
     def request(self, action, **kwargs):
-        ajaxpage = 'https://redacted.ch/ajax.php'
         params = {'action': action}
         params.update(kwargs)
+        return self._get_parsed_response(params)
 
-        r = self.session.get(ajaxpage, params=params, allow_redirects=False, timeout=30)
+    def _get_parsed_response(self, params):
+        r = self.session.get(self.base + "/ajax.php", params=params, allow_redirects=False, timeout=30)
         if r.status_code == 401 or r.status_code == 403:
             raise GazelleAPIError('unauthorized', 'Authentication error: ' + r.json()['error'])
         if r.status_code != 200:
@@ -132,8 +139,8 @@ class GazelleAPI:
             'File count':              torrent['fileCount'],
             'Info hash':               torrent.get("infoHash", hash or "Unknown"), # OPS fallback
             'Uploaded':                torrent['time'],
-            'Permalink':               'https://redacted.ch/torrents.php?torrentid={0}'.format(torrent['id']),      
-            'Cover':                   group['wikiImage']
+            'Cover':                   group['wikiImage'],
+            'Permalink':               f'{self.base}/torrents.php?torrentid={torrent["id"]}',
         }.items()}
 
         dump = yaml.dump(info_dict, width=float('inf'), sort_keys=False, allow_unicode=True)
@@ -154,7 +161,7 @@ class GazelleAPI:
 
         result += yaml.dump({'Files': file_list}, width=float('inf'), allow_unicode=True)
 
-        groupDescription = html.unescape(group['bbBody']).strip('\r\n')
+        groupDescription = html.unescape(group.get('bbBody') or group.get('wikiBBcode')).strip('\r\n')
         if groupDescription:
             groupDescription = textwrap.indent(groupDescription, '  ', lambda line: True)
             result += '\n\nDescription: |-\n{0}\n\n'.format(groupDescription)
