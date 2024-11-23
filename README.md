@@ -35,7 +35,7 @@ Size:                    880205823
 File count:              19
 Info hash:               464E935F643E4E04FF2D78B547F0C1CCBA9FFF57
 Uploaded:                2022-05-17 12:28:05
-Permalink:               https://redacted.ch/torrents.php?torrentid=3688481
+Permalink:               https://redacted.sh/torrents.php?torrentid=3688481
 Cover:                   https://ptpimg.me/y7qu51.jpg
 
 Comment: |-
@@ -137,7 +137,7 @@ Supported Trackers
 ------------------
 
 Currently, the following trackers are supported:
-  * redacted.ch: use `--tracker red` or set the `ORIGIN_TRACKER=red`
+  * redacted.sh: use `--tracker red` or set the `ORIGIN_TRACKER=red`
   * orpheus.network: use `--tracker ops` or set the `ORIGIN_TRACKER=ops`
 
 Installation
@@ -178,7 +178,7 @@ Obtaining Your API Key
 `gazelle-origin` requires an API key to make API requests. You can add your keys `OPS_API_KEY` or `RED_API_KEY` environment variables, or pass the string with the `--api-key` flag.
 To obtain your API key:
 
-### redacted.ch
+### redacted.sh
 * Go to your profile and select Access Settings on the right side
 * Scroll down to API Keys
 * Enter "gazelle-origin" as the name
@@ -247,7 +247,7 @@ To show origin information for a given torrent using its info hash:
 
 Alternatively, you can pass the permalink instead of the info hash:
 
-    $> gazelle-origin "https://redacted.ch/torrents.php?torrentid=1"
+    $> gazelle-origin "https://redacted.sh/torrents.php?torrentid=1"
 
 You can even supply just the torrent ID:
 
@@ -279,9 +279,9 @@ then you could run
 Or you can manually go through your existing downloads and populate them with origin.yaml files:
 
     $> cd /path/to/first/torrent
-    $> gazelle-origin -o origin.yaml "https://redacted.ch/torrents.php?torrentid=1"
+    $> gazelle-origin -o origin.yaml "https://redacted.sh/torrents.php?torrentid=1"
     $> cd /path/to/another/torrent
-    $> gazelle-origin -o origin.yaml "https://redacted.ch/torrents.php?torrentid=2"
+    $> gazelle-origin -o origin.yaml "https://redacted.sh/torrents.php?torrentid=2"
     $> ...
     
     
