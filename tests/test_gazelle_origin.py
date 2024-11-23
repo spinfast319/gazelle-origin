@@ -32,7 +32,7 @@ class TestCore(unittest.TestCase):
                          g.parse_torrent_input(torrent="4562B9F4F3A7559BBD4D5ACC477C39D2B6F777B4"))
 
         self.assertEqual({'id': '1888808'},
-                         g.parse_torrent_input(torrent="https://redacted.ch/torrents.php?id=875854&torrentid=1888808#torrent1888808"))
+                         g.parse_torrent_input(torrent="https://redacted.sh/torrents.php?id=875854&torrentid=1888808#torrent1888808"))
 
 
 
@@ -42,12 +42,12 @@ class TestCore(unittest.TestCase):
 
     def test_red(self):
 
-        self.run_main(['--tracker', 'red', '--env', self.env_file, 'https://redacted.ch/torrents.php?torrentid=1684059'],
+        self.run_main(['--tracker', 'red', '--env', self.env_file, 'https://redacted.sh/torrents.php?torrentid=1684059'],
                        expected=self.test_dicts['red.yaml'])
 
     def test_red_with_env(self):
         os.environ["RED_API_KEY"] = self.envs["RED_API_KEY"]
-        self.run_main(['--tracker', 'red', 'https://redacted.ch/torrents.php?torrentid=1684059'],
+        self.run_main(['--tracker', 'red', 'https://redacted.sh/torrents.php?torrentid=1684059'],
                        expected=self.test_dicts['red.yaml'])
 
     def run_main(self, args, expected):

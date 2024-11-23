@@ -40,7 +40,7 @@ class TrackerData:
 
 
 TRACKERS = [
-    TrackerData(base_url="https://redacted.ch",
+    TrackerData(base_url="https://redacted.sh",
             api_key_env="RED_API_KEY",
             aliases=["red", "flacsfor.me"]),
     TrackerData(base_url="https://orpheus.network",
@@ -58,7 +58,7 @@ class GazelleOrigin:
             description='Fetches torrent origin information from Gazelle-based music trackers',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog='Either ORIGIN_TRACKER or --tracker must be set to a supported tracker:\n'
-                   '  redacted.ch: "RED", or any string containing "flacsfor.me"\n'
+                   '  redacted.sh: "RED", or any string containing "flacsfor.me"\n'
                    '  orpheus.network: "OPS", or any string containing "opsfet.ch"'
         )
         parser.add_argument('torrent', nargs='+', help='torrent identifier, which can be either its info hash, torrent ID, permalink, or path to torrent file(s) whose name or computed info hash should be used')
