@@ -3,7 +3,7 @@ gazelle-origin (plus)
 
 `gazelle-origin` is a script that fetches and saves YAML torrent origin information from Gazelle-based music trackers. 
 
-This is a fork of x1ppy's work that adds a significant amount of meta data to the yaml file including tags (thanks to RollingStar's fork), artists (organized by type), release type, orginal label and cat # (for those releases that were never updated), the cover art URL and the group decription. More could be added easily.
+This is a fork of x1ppy's work that adds a significant amount of meta data to the yaml file including tags (thanks to RollingStar's fork), artists (organized by type), release type, original label and cat # (for those releases that were never updated), the cover art URL and the group description. More could be added easily.
 
 Example output from `gazelle-origin` (plus):
 
@@ -136,8 +136,9 @@ uploader formatting.
 Supported Trackers
 ------------------
 
-Currently, only redacted.ch is supported. Use `--tracker red` or set the `ORIGIN_TRACKER=red` environment variable to
-use it.
+Currently, the following trackers are supported:
+  * redacted.ch: use `--tracker red` or set the `ORIGIN_TRACKER=red`
+  * orpheus.network: use `--tracker ops` or set the `ORIGIN_TRACKER=ops`
 
 Installation
 ------------
@@ -149,6 +150,7 @@ Install using `pip`:
 Then add your tracker API key (see [Obtaining Your API Key](https://github.com/x1ppy/gazelle-origin#obtaining-your-api-key)) to `~/.bashrc` or equivalent:
 
     export RED_API_KEY=<api_key>
+    export OPS_API_KEY=<api_key>
 
 Though not required, it's also recommended that you add a default tracker to `~/.bashrc` or equivalent (see [Supported Trackers](#supported-trackers)):
 
@@ -173,7 +175,8 @@ Then re-install with 'pip' but from this fork:
     
 Obtaining Your API Key
 ---------------------
-`gazelle-origin` requires an API key to make API requests. To obtain your API key:
+`gazelle-origin` requires an API key to make API requests. You can add your keys `OPS_API_KEY` or `RED_API_KEY` environment variables, or pass the string with the `--api-key` flag.
+To obtain your API key:
 
 ### redacted.ch
 * Go to your profile and select Access Settings on the right side
@@ -188,6 +191,14 @@ Before saving, the fields should look like this:
 
 After saving, you should see a Torrents API key like this:
 ![after saving](docs/api-done.png "After saving")
+
+### orpheus.network
+* Go to your profile and select Settings.
+* Scroll down to API Keys at the bottom of the Access Settings section 
+* Click "Click here to create a new token"
+* Enter "gazelle-origin" as the name, and click generate
+
+Once you get your API key, save it somewhere safe, as you won't be able to view it again after exiting the page.
 
 Usage
 -----
@@ -286,6 +297,17 @@ Integration
 `gazelle-origin` is best used when called automatically in your torrent client when a download finishes. Use the
 following snippets to integrate `gazelle-origin` into your client. If your client isn't listed, please file a PR!
 
+#### Docker torrent clients
+
+If you use a linuxserver docker image such as [linuxserver/rutorrent](https://hub.docker.com/r/linuxserver/rutorrent) or [linuxserver/qbittorrent](https://hub.docker.com/r/linuxserver/qbittorrent), you can add these environmental variables to install gazelle-origin in the docker container.
+
+~~~
+environment:
+  - DOCKER_MODS=linuxserver/mods:universal-package-install
+  - INSTALL_PACKAGES=git
+  - INSTALL_PIP_PACKAGES=git+https://github.com/spinfast319/gazelle-origin
+~~~
+
 #### rtorrent
 
 `gazelle-origin` is best used when called automatically in your torrent client when
@@ -333,6 +355,11 @@ originquery:
         catalognum: '$."Catalog number"'
         albumdisambig: '$.Edition'
 ~~~
+
+### lidarr
+
+With lidarr, downloading origin files and running beets with [beets-originquery](https://github.com/x1ppy/beets-originquery) can be automated with [beets-lidarr](https://github.com/MxMarx/lidarr-beets)
+
 
 Changelog
 ---------
