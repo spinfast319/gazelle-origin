@@ -42,10 +42,10 @@ class TrackerData:
 TRACKERS = [
     TrackerData(base_url="https://redacted.sh",
             api_key_env="RED_API_KEY",
-            aliases=["red", "flacsfor.me"]),
+            aliases=["red", "flacsfor.me", "flacsfor.me:443"]),
     TrackerData(base_url="https://orpheus.network",
             api_key_env="OPS_API_KEY",
-            aliases=["ops", "opsfet.ch"])
+            aliases=["ops", "opsfet.ch", "home.opsfet.ch:443"])
 ]
 
 class GazelleOrigin:
