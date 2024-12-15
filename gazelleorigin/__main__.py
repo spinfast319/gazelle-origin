@@ -237,7 +237,7 @@ class GazelleOrigin:
                 skip = False
             elif e.code == 'request':
                 # If server returned 500 series error then stop because server might be having trouble
-                skip = int(str(e).split('(status ')[-1][:-1]) >= 500
+                skip = int(str(e).split('(status ')[-1][:-1]) < 500
             else:
                 skip = e.code == 'request-json' or e.code == 'music'
             if skip:
@@ -256,7 +256,7 @@ class GazelleOrigin:
         if self.args.post:
             fetched_info = yaml.load(info, Loader=yaml.SafeLoader)
             for script in self.args.post:
-                subprocess.run(script, shell=True, env={k.upper(): str(v) for k, v in {**self.args, **fetched_info}.items()})
+                subprocess.run(script, shell=True, env={k.upper(): str(v) for k, v in {**vars(self.args), **fetched_info}.items()})
 
 
 def main(argv=None):

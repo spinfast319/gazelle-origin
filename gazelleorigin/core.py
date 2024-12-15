@@ -106,7 +106,7 @@ class GazelleAPI:
         releaseTypes = release_codes.get(group['releaseType'], "none")
 
         file_list = [m.groupdict() for m in
-                     re.finditer(r"(?P<Name>.*?){{{(?P<Size>\d+)}}}\|\|\|", torrent['fileList'])]
+                     re.finditer(r"(?P<Name>.*?){{{(?P<Size>\d+)}}}(\|\|\|)?", torrent['fileList'])]
 
         # If the api can return empty tags
         group['tags'] = group.get('tags', '')
