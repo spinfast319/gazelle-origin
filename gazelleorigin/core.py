@@ -141,6 +141,8 @@ class GazelleAPI:
             'Uploaded':                torrent['time'],
             'Cover':                   group['wikiImage'],
             'Permalink':               f'{self.base}/torrents.php?torrentid={torrent["id"]}',
+            'Group permalink':         f'{self.base}/torrents.php?id={group["id"]}',
+
         }.items()}
 
         dump = yaml.dump(info_dict, width=float('inf'), sort_keys=False, allow_unicode=True)
